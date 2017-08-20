@@ -32,7 +32,7 @@
 		[spec setProperty:@YES forKey:@"default"];
         [specifiers addObject:spec];
 		
-		spec = [PSSpecifier preferenceSpecifierNamed:@"iOS Version"
+		spec = [PSSpecifier preferenceSpecifierNamed:@"Information Spoof"
 		                                      target:self
 											  set:Nil
 											  get:Nil
@@ -40,9 +40,9 @@
 											  cell:PSGroupCell
 											  edit:Nil];
 		[spec setProperty:@"iOS Version" forKey:@"label"];
-		[spec setProperty:@"Input iOS Version you want to Spoof for allow install." forKey:@"footerText"];
+		[spec setProperty:@"Input Device Detail you want to Spoof for allow install." forKey:@"footerText"];
         [specifiers addObject:spec];
-		spec = [PSSpecifier preferenceSpecifierNamed:nil
+		spec = [PSSpecifier preferenceSpecifierNamed:@"iOS Version"
 											  target:self
 											  set:@selector(setPreferenceValue:specifier:)
 											  get:@selector(readPreferenceValue:)
@@ -51,6 +51,16 @@
 											  edit:Nil];
 		[spec setProperty:@"SpoofVersion" forKey:@"key"];
 		[spec setProperty:@"10.3" forKey:@"default"];
+		[specifiers addObject:spec];
+		spec = [PSSpecifier preferenceSpecifierNamed:@"Device"
+											  target:self
+											  set:@selector(setPreferenceValue:specifier:)
+											  get:@selector(readPreferenceValue:)
+											  detail:Nil
+											  cell:PSEditTextCell
+											  edit:Nil];
+		[spec setProperty:@"SpoofDevice" forKey:@"key"];
+		[spec setProperty:@"iPhone6,1" forKey:@"default"];
 		[specifiers addObject:spec];
 		
 		

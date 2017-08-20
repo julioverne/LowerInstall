@@ -2,9 +2,9 @@
 #import <notify.h>
 #import <dlfcn.h>
 #import <substrate.h>
+#import <sys/utsname.h>
 
 extern const char *__progname;
-extern "C" CFPropertyListRef MGCopyAnswer(CFStringRef property);
 
 #define NSLog(...)
 
@@ -13,18 +13,20 @@ extern "C" CFPropertyListRef MGCopyAnswer(CFStringRef property);
 
 static BOOL Enabled;
 static __strong NSString* kCurrentiOSVersion = nil;
-static __strong NSString* kCurrentiOSVersionSpoof = nil;
+static __strong NSString* kCurrentDeviceType = nil;
+const char * kCurrentiOSVersionSpoof;
+const char * kCurrentDeviceTypeSpoof;
 static __strong NSString* kUserAgent = @"User-Agent";
-
-
+static __strong NSString* kFormatHeader = @"/%@ ";
 
 %group itunesstoredHooks
 %hook NSMutableURLRequest
 - (void)setValue:(NSString *)value forHTTPHeaderField:(NSString *)field
 {
-	if(Enabled && field && value && [field isEqualToString:kUserAgent]) {
+	if(Enabled && field && value && kUserAgent && [field isEqualToString:kUserAgent] && kCurrentiOSVersion && kCurrentiOSVersionSpoof) {
 		if([value rangeOfString:kCurrentiOSVersion].location != NSNotFound) {
-			value = [value stringByReplacingOccurrencesOfString:kCurrentiOSVersion withString:kCurrentiOSVersionSpoof];
+			value = [value stringByReplacingOccurrencesOfString:[NSString stringWithFormat:kFormatHeader, kCurrentiOSVersion] withString:[NSString stringWithFormat:kFormatHeader, [NSString stringWithUTF8String:kCurrentiOSVersionSpoof]]];
+			value = [value stringByReplacingOccurrencesOfString:[NSString stringWithFormat:kFormatHeader, kCurrentDeviceType] withString:[NSString stringWithFormat:kFormatHeader, [NSString stringWithUTF8String:kCurrentDeviceTypeSpoof]]];
 		}
 	}
 	%orig(value, field);
@@ -40,24 +42,44 @@ static __strong NSString* kUserAgent = @"User-Agent";
 	ret = @"2.0";
 	return ret;
 }
+- (NSArray *)supportedDevices
+{
+	NSArray* ret = %orig?:@[];
+	if(kCurrentDeviceType && ![ret containsObject:kCurrentDeviceType]) {
+		NSMutableArray* retMut = [ret mutableCopy];
+		[retMut addObject:[kCurrentDeviceType copy]];
+		ret = [retMut copy];
+	}
+	return ret;
+}
 %end
 %end
 
 static void settingsChangedLowerInstall()
 {	
 	@autoreleasepool {
-		NSDictionary *EdgeAlertPrefs = [[[NSDictionary alloc] initWithContentsOfFile:@PLIST_PATH_Settings]?:[NSDictionary dictionary] copy];
-		Enabled = (BOOL)[[EdgeAlertPrefs objectForKey:@"Enabled"]?:@YES boolValue];
-		kCurrentiOSVersionSpoof = [NSString stringWithFormat:@"/%@ ", [EdgeAlertPrefs objectForKey:@"SpoofVersion"]?:@"10.3"];
+		NSDictionary *LowerInstallPrefs = [[[NSDictionary alloc] initWithContentsOfFile:@PLIST_PATH_Settings]?:[NSDictionary dictionary] copy];
+		Enabled = (BOOL)[[LowerInstallPrefs objectForKey:@"Enabled"]?:@YES boolValue];
+		NSString* CurrentiOSVersionSpoof = [LowerInstallPrefs objectForKey:@"SpoofVersion"]?:@"10.3";
+		kCurrentiOSVersionSpoof = (const char*)(malloc([CurrentiOSVersionSpoof length]));
+		memcpy((void*)kCurrentiOSVersionSpoof,(const void*)CurrentiOSVersionSpoof.UTF8String, [CurrentiOSVersionSpoof length]);
+		((char*)kCurrentiOSVersionSpoof)[[CurrentiOSVersionSpoof length]] = '\0';
+		NSString* CurrentDeviceTypeSpoof = [LowerInstallPrefs objectForKey:@"SpoofDevice"]?:@"iPhone6,1";
+		kCurrentDeviceTypeSpoof = (const char*)(malloc([CurrentDeviceTypeSpoof length]));
+		memcpy((void*)kCurrentDeviceTypeSpoof,(const void*)CurrentDeviceTypeSpoof.UTF8String, [CurrentDeviceTypeSpoof length]);
+		((char*)kCurrentDeviceTypeSpoof)[[CurrentDeviceTypeSpoof length]] = '\0';
 	}
 }
 
 %ctor
 {
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)settingsChangedLowerInstall, CFSTR("com.julioverne.lowerinstall/SettingsChanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+	settingsChangedLowerInstall();
+	struct utsname systemInfo;
+	uname(&systemInfo);
+	kCurrentDeviceType = [NSString stringWithFormat:@"%s", systemInfo.machine];
+	kCurrentiOSVersion = [NSString stringWithFormat:@"%@", [[UIDevice currentDevice] systemVersion]];
 	if(strcmp(__progname, "itunesstored") == 0) {
-		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)settingsChangedLowerInstall, CFSTR("com.julioverne.lowerinstall/SettingsChanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-		settingsChangedLowerInstall();
-		kCurrentiOSVersion = [NSString stringWithFormat:@"/%@ ", (NSString *)MGCopyAnswer(CFSTR("ProductVersion"))];
 		%init(itunesstoredHooks);
 	} else {
 		%init(installdHooks);
