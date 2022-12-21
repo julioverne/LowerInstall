@@ -1,6 +1,7 @@
 #import <notify.h>
 #import <Social/Social.h>
 #import <dlfcn.h>
+#import <sys/utsname.h>
 #import <prefs.h>
 
 #define NSLog(...)
@@ -42,6 +43,12 @@
 		[spec setProperty:@"iOS Version" forKey:@"label"];
 		[spec setProperty:@"Input Device Detail you want to Spoof for allow install." forKey:@"footerText"];
         [specifiers addObject:spec];
+		
+		struct utsname systemInfo;
+		uname(&systemInfo);
+		NSString* kCurrentDeviceType = [NSString stringWithFormat:@"%s", systemInfo.machine];
+		NSString* kCurrentiOSVersion = [NSString stringWithFormat:@"%@", [[UIDevice currentDevice] systemVersion]];
+	
 		spec = [PSSpecifier preferenceSpecifierNamed:@"iOS Version"
 											  target:self
 											  set:@selector(setPreferenceValue:specifier:)
@@ -50,7 +57,7 @@
 											  cell:PSEditTextCell
 											  edit:Nil];
 		[spec setProperty:@"SpoofVersion" forKey:@"key"];
-		[spec setProperty:@"10.3" forKey:@"default"];
+		[spec setProperty:kCurrentiOSVersion forKey:@"default"];
 		[specifiers addObject:spec];
 		spec = [PSSpecifier preferenceSpecifierNamed:@"Device"
 											  target:self
@@ -60,7 +67,7 @@
 											  cell:PSEditTextCell
 											  edit:Nil];
 		[spec setProperty:@"SpoofDevice" forKey:@"key"];
-		[spec setProperty:@"iPhone6,1" forKey:@"default"];
+		[spec setProperty:kCurrentDeviceType forKey:@"default"];
 		[specifiers addObject:spec];
 		
 		
@@ -96,7 +103,7 @@
 		[spec setProperty:[UIImage imageWithContentsOfFile:[[self bundle] pathForResource:@"twitter" ofType:@"png"]] forKey:@"iconImage"];
         [specifiers addObject:spec];
 		spec = [PSSpecifier emptyGroupSpecifier];
-        [spec setProperty:@"LowerInstall © 2017" forKey:@"footerText"];
+        [spec setProperty:@"LowerInstall © 2022" forKey:@"footerText"];
         [specifiers addObject:spec];
 		_specifiers = [specifiers copy];
 	}

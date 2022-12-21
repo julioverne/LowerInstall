@@ -1,15 +1,12 @@
-include theos/makefiles/common.mk
+include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = LowerInstall
 
-LowerInstall_FILES = /mnt/d/codes/lowerinstall/lowerinstallhooks/LowerInstall.xm
-LowerInstall_FRAMEWORKS = CydiaSubstrate Foundation UIKit
-LowerInstall_LDFLAGS = -Wl,-segalign,4000
+$(TWEAK_NAME)_FILES = /mnt/d/codes/lowerinstall/lowerinstallhooks/LowerInstall.xm
+$(TWEAK_NAME)_FRAMEWORKS = CydiaSubstrate Foundation UIKit
+$(TWEAK_NAME)_LDFLAGS = -Wl,-segalign,4000
 
-export ARCHS = armv7 arm64
-LowerInstall_ARCHS = armv7 arm64
+export ARCHS = armv7 armv7s arm64 arm64e
+$(TWEAK_NAME)_ARCHS = armv7 armv7s arm64 arm64e
 
 include $(THEOS_MAKE_PATH)/tweak.mk
-	
-all::
-	
